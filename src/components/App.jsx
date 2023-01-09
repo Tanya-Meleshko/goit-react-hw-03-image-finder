@@ -9,83 +9,85 @@ export class App extends Component {
     gallery: [],
     lastPage: false,
     isLoading: false,
+    page: 1,
+    searchQuery: '',
   };
 
-  searchQuery = '';
-  page = 1;
   key = '30714189-c7a9caa64088584cf8591e191';
 
-  onSubmit = query => {
-    this.searchQuery = query;
-    if (this.searchQuery.trim() !== '') {
-      this.page = 1;
-      this.setState({
-        isLoading: true,
-        gallery: [],
-      });
-      fetchData(this.key, this.searchQuery, this.page)
-        .then(gallery => {
-          if (this.page > gallery.totalHits / 12) {
-            this.setState({
-              lastPage: true,
-            });
-          } else {
-            this.setState({
-              lastPage: false,
-            });
-          }
-          if (gallery.hits.length === 0) {
-            this.setState({
-              gallery: ['noimg'],
-            });
-          } else {
-            this.setState({
-              gallery: gallery.hits,
-            });
-          }
-        })
-        .finally(() => {
-          this.setState({
-            isLoading: false,
-          });
-        });
+  componentDidUpdate(_, prevState) {
+    if (
+      prevState.page === this.state.page &&
+      prevState.searchQuery === this.state.searchQuery
+    ) {
+      return;
     }
-  };
-
-  loadMore = () => {
-    this.page += 1;
-    this.setState({
-      isLoading: true,
-    });
-    fetchData(this.key, this.searchQuery, this.page)
+    fetchData(this.key, this.state.searchQuery, this.state.page)
       .then(gallery => {
-        if (this.page > gallery.totalHits / 12) {
+        if (this.state.page > gallery.totalHits / 12) {
           this.setState({
             lastPage: true,
           });
+        } else {
+          this.setState({
+            lastPage: false,
+          });
         }
-
-        this.setState(prevState => ({
-          gallery: [...prevState.gallery, ...gallery.hits],
-        }));
+        if (gallery.hits.length === 0) {
+          this.setState({
+            gallery: ['noimg'],
+          });
+        } else {
+          if (this.state.gallery.length === 0) {
+            this.setState({
+              gallery: gallery.hits,
+            });
+          } else {
+            this.setState(prevState => ({
+              gallery: [...prevState.gallery, ...gallery.hits],
+            }));
+          }
+        }
       })
       .finally(() => {
         this.setState({
           isLoading: false,
         });
-        setTimeout(() => {
+        if (this.state.gallery.length !== 0) {
           this.addAutoScroll();
-        }, 200);
+        }
       });
+  }
+
+  onSubmit = query => {
+    this.setState({ searchQuery: query });
+    if (this.state.searchQuery.trim() !== '') {
+      this.setState({ page: 1 });
+      this.setState({
+        isLoading: true,
+        gallery: [],
+      });
+    }
+  };
+
+  loadMore = () => {
+    this.setState(prevState => ({
+      page: prevState.page + 1,
+    }));
+    this.setState({
+      isLoading: true,
+    });
   };
 
   addAutoScroll = () => {
-    const cardHeight = 500;
+    setTimeout(() => {
+      const cardHeight = 500;
 
-    window.scrollBy({
-      top: cardHeight * 2,
-      behavior: 'smooth',
-    });
+      window.scrollBy({
+        top: cardHeight * 2,
+        behavior: 'smooth',
+      });
+    }, 200);
   };
 
   render() {
